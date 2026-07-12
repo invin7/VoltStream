@@ -11,9 +11,10 @@ public class VisualUtility {
         printSeparator();
     }
 
-    // Clear the terminal console screen using standard ANSI Escape Sequences
+
     public static void clearScreen() {
-        // \033[H moves cursor to home position, \033[2J clears the entire screen screen
+        // \033[H moves cursor to home position, 
+        // \033[2J clears the entire screen screen
         System.out.print("\033[H\033[2J");
         System.out.flush();
     }
