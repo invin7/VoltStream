@@ -160,13 +160,21 @@ Or simply import the project into Eclipse and run `Main.java`.
 
 ## 📸 Screenshots
 
-| Main Menu | Dashboard |
-|-----------|-----------|
-| ![](docs/main-menu.png) | ![](docs/dashboard.png) |
+### Main Menu
 
-| Add Vehicle | Charging Progress |
-|-------------|-------------------|
-| ![](docs/add-vehicle.png) | ![](docs/charging-progress.png) |
+![Main Menu](docs/main-menu.png)
+
+### Add Vehicle
+
+![Add Vehicle](docs/add-vehicle.png)
+
+### Live Dashboard
+
+![Dashboard](docs/dashboard.png)
+
+### Charging Progress
+
+![Charging Progress](docs/charging-progress.png)
 
 ---
 
