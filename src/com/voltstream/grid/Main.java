@@ -3,10 +3,13 @@ package com.voltstream.grid;
 import java.util.Scanner;
 
 public class Main {
+    private static final double GRID_CAPACITY = 400.0;
+    private static final int TOTAL_BAYS = 3;
+    private static final double TIME_STEP = 0.2;
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         
-        EVNetworkController controller = new EVNetworkController(400.0);
+        EVNetworkController controller = new EVNetworkController(GRID_CAPACITY);
 
         controller.addBay(new UltraFastBay("BAY-01 (Ultra-Fast 350kW)"));
         controller.addBay(new UltraFastBay("BAY-02 (Ultra-Fast 350kW)"));
@@ -17,12 +20,19 @@ public class Main {
         while (running) {
             com.voltstream.util.VisualUtility.clearScreen();
 
-            System.out.println("\n--- 🎛️ CORE OPERATION CONTROLS ---");
-            System.out.println("1. ➕ Dock New Electric Vehicle");
-            System.out.println("2. 🕒 Simulate Time Elapse (Step 12-Min Grid Tick)");
-            System.out.println("3. 📊 Print Live Telemetry Dashboard Status");
-            System.out.println("4. ❌ Terminate Core Engine Simulation");
-            System.out.print("Select Operational Option [1-4]: ");
+            System.out.println("==========================================");
+            System.out.println("          VoltStream Simulator");
+            System.out.println("==========================================");
+            System.out.printf("Grid Capacity : %.0f kW%n", GRID_CAPACITY);
+            System.out.printf("Charging Bays : %d%n", TOTAL_BAYS);
+
+            System.out.println("\n========== Main Menu ==========");
+            System.out.println("1. Add Vehicle");
+            System.out.println("2. Simulate 12-Minute Time Step");
+            System.out.println("3. View Dashboard");
+            System.out.println("4. Exit Simulation");
+
+            System.out.print("\nSelect an option [1-4]: ");
             
             String choiceInput = scanner.nextLine().trim();
             int choice = 0;
@@ -30,7 +40,7 @@ public class Main {
             try {
                 choice = Integer.parseInt(choiceInput);
             } catch (NumberFormatException e) {
-                System.out.println("[⚠️] Invalid Entry. Please enter a numerical option.");
+                System.out.println("Invalid input. Please enter a number.");
                 System.out.print("\nPress Enter to try again...");
                 scanner.nextLine();
                 continue;
@@ -42,39 +52,40 @@ public class Main {
                     break;
 
                 case 2:
-                    System.out.println("\n[🕒] Executing 0.2 Hour (12-Minute) Real-Time Simulation Step...");
-                    controller.executeTimeStep(0.2);
+                    System.out.println("\nAdvancing simulation by 12 minutes...");
+                    controller.executeTimeStep(TIME_STEP);
                     
                     System.out.print("\nPress Enter to return to main menu...");
                     scanner.nextLine();
                     break;
 
                 case 3:
-                    controller.executeTimeStep(0.0);
+                    controller.executeTimeStep(0);
                     
                     System.out.print("\nPress Enter to return to main menu...");
                     scanner.nextLine(); 
                     break;
 
                 case 4:
-                    System.out.println("\n[❌] Shutting down VoltStream Microgrid Simulation. Clearing registers...");
+                    System.out.println("\nShutting down VoltStream...");
                     running = false;
                     break;
 
                 default:
-                    System.out.println("[⚠️] Operational boundary exception. Option outside limits.");
+                    System.out.println("Invalid menu option.");
                     System.out.print("\nPress Enter to try again...");
                     scanner.nextLine();
             }
         }
         scanner.close();
-        System.out.println("================ ENGINE HALTED CLEANLY ================");
+        System.out.println("\nVoltStream terminated successfully.");
     }
     
     private static void handleVehicleDocking(Scanner scanner, EVNetworkController controller) {
 
-        System.out.println("\n--- Configure Vehicle ---");
+        System.out.println("\n========== Add Vehicle ==========");
         VehicleType[] types = VehicleType.values();
+        System.out.println();
 
         for (int i = 0; i < types.length; i++) {
             System.out.printf("%d. %-18s (Max Rate: %.1f kW | Battery: %.0f kWh)%n",
@@ -104,7 +115,7 @@ public class Main {
 
         VehicleType selectedType = types[typeChoice - 1];
 
-        System.out.print("License Plate: ");
+        System.out.print("Enter license plate: ");
         String plate = scanner.nextLine().trim().toUpperCase();
 
         if (plate.isEmpty()) {
@@ -113,7 +124,7 @@ public class Main {
             return;
         }
 
-        System.out.print("Initial Charge (0-99%): ");
+        System.out.print("Enter initial charge (0–99%): ");
 
         double soc;
 
