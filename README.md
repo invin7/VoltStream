@@ -10,7 +10,7 @@ VoltStream is a console-based simulation of a smart electric vehicle charging ne
 
 When multiple vehicles request charging simultaneously, the system intelligently distributes available power, dynamically adjusts charging tariffs based on grid utilization, and continuously updates the charging status of every connected vehicle.
 
-The project was built to demonstrate core **Object-Oriented Programming (OOP)** concepts through a realistic systems simulation rather than a traditional CRUD application.
+The project was built to demonstrate core **Object-Oriented Programming (OOP)** concepts through a realistic systems simulation.
 
 ---
 
@@ -164,18 +164,6 @@ Or simply import the project into Eclipse and run `Main.java`.
 
 ---
 
-## 🔮 Future Improvements
-
-- GUI version using JavaFX
-- Persistent storage using PostgreSQL
-- REST API for remote monitoring
-- Real-time dashboard
-- Renewable energy integration
-- Charging reservation system
-- Analytics and reporting
-
----
-
 ## 🎯 Learning Outcomes
 
 This project strengthened my understanding of:
@@ -188,8 +176,3 @@ This project strengthened my understanding of:
 
 ---
 
-## 👨‍💻 Author
-
-**Samyak**
-
-BITS Pilani
