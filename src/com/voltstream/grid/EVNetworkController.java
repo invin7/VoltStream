@@ -2,10 +2,12 @@ package com.voltstream.grid;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import com.voltstream.exception.InvalidVehicleException;
 import com.voltstream.util.VisualUtility;
 
 public class EVNetworkController {
+
     private final List<ChargingBay> stationBays;
     private final double maxGridCapacityKw;
     private double totalRevenueGenerated = 0.0;
@@ -27,7 +29,7 @@ public class EVNetworkController {
                     optimizeGridPower();
                     return true;
                 } catch (InvalidVehicleException e) {
-                    System.out.println("[❌ GRID REJECTION] " + e.getMessage());
+                    System.out.println("Vehicle rejected: " + e.getMessage());
                     return false;
                 }
             }
@@ -37,22 +39,26 @@ public class EVNetworkController {
 
     public double getGridLoadFactor() {
         double currentLoad = 0.0;
+
         for (ChargingBay bay : stationBays) {
             if (bay.isOccupied()) {
                 currentLoad += bay.getCurrentAllocatedPower();
             }
         }
+
         return maxGridCapacityKw > 0 ? currentLoad / maxGridCapacityKw : 0.0;
     }
 
     public void optimizeGridPower() {
+
         double totalRequestedPower = 0.0;
+
         for (ChargingBay bay : stationBays) {
             if (bay.isOccupied()) {
                 ElectricVehicle ev = bay.getDockedVehicle();
-                double optimalDemand = Math.min(bay.getMaximumHardwareOutput(), ev.getMaxChargingRate());
-                bay.setAllocatedPower(optimalDemand);
-                totalRequestedPower += optimalDemand;
+                double requestedPower =Math.min(bay.getMaximumHardwareOutput(), ev.getMaxChargingRate());
+                bay.setAllocatedPower(requestedPower);
+                totalRequestedPower += requestedPower;
             }
         }
 
@@ -60,7 +66,8 @@ public class EVNetworkController {
             double scalingFactor = maxGridCapacityKw / totalRequestedPower;
             for (ChargingBay bay : stationBays) {
                 if (bay.isOccupied()) {
-                    bay.setAllocatedPower(bay.getCurrentAllocatedPower() * scalingFactor);
+                    bay.setAllocatedPower(
+                            bay.getCurrentAllocatedPower() * scalingFactor);
                 }
             }
         }
@@ -69,30 +76,31 @@ public class EVNetworkController {
     public void executeTimeStep(double hours) {
         double loadFactor = getGridLoadFactor();
         VisualUtility.printStatusHeader(loadFactor);
-        
         for (ChargingBay bay : stationBays) {
             if (bay.isOccupied()) {
                 ElectricVehicle ev = bay.getDockedVehicle();
                 double power = bay.getCurrentAllocatedPower();
                 double energyDelivered = power * hours;
                 ev.energyDelivered(energyDelivered);
-
-                double rate = TariffEngine.calculateCurrentTariff(bay, loadFactor);
-                double stepCost = energyDelivered * rate;
-                totalRevenueGenerated += stepCost;
-
-                System.out.printf("🔌 [Active] %s -> Unit %s | SoC: %.1f%% | Power Output: %.1f kW | Dynamic Cost: ₹%.2f/kWh%n", 
-                    bay.getBayId(), ev.getPlateNumber(), ev.getChargePercentage(), power, rate);
+                double tariff = TariffEngine.calculateCurrentTariff(bay, loadFactor);
+                double sessionCost = energyDelivered * tariff;
+                totalRevenueGenerated += sessionCost;
+                System.out.printf("[Charging] %-25s | Vehicle: %-10s | SoC: %6.1f%% | Power: %6.1f kW | Tariff: ₹%.2f/kWh%n",bay.getBayId(),ev.getPlateNumber(),ev.getChargePercentage(),power,tariff);
 
                 if (ev.isFullyCharged()) {
-                    System.out.printf(" 🧾 [INVOICED] Vehicle %s processing complete. Clearing line state...%n", ev.getPlateNumber());
+                    System.out.printf("[Complete] Vehicle %s finished charging.%n", ev.getPlateNumber());
+
+                    System.out.println("           Disconnecting vehicle...\n");
+
                     bay.undock();
                 }
+
             } else {
-                System.out.printf("🔌 [Idle]   %s -> Standing Ready.%n", bay.getBayId());
+                System.out.printf("[Available] %-25s%n",bay.getBayId());
             }
         }
-        System.out.printf("💰 Consolidated Infrastructure Cashflow: ₹%.2f%n", totalRevenueGenerated);
+
+        System.out.printf("%nTotal Revenue : ₹%.2f%n", totalRevenueGenerated);
         VisualUtility.printSeparator();
         optimizeGridPower();
     }

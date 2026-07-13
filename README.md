@@ -160,7 +160,13 @@ Or simply import the project into Eclipse and run `Main.java`.
 
 ## 📸 Screenshots
 
-> Screenshots of the simulation dashboard, vehicle allocation, and charging progress will be added here.
+| Main Menu | Dashboard |
+|-----------|-----------|
+| ![](docs/main-menu.png) | ![](docs/dashboard.png) |
+
+| Add Vehicle | Charging Progress |
+|-------------|-------------------|
+| ![](docs/add-vehicle.png) | ![](docs/charging-progress.png) |
 
 ---
 
