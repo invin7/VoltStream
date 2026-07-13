@@ -12,6 +12,7 @@ public class Main {
         controller.addBay(new UltraFastBay("BAY-02 (Ultra-Fast 350kW)"));
         controller.addBay(new FastDCBay("BAY-03 (Fast-DC 150kW)"));
         
+        
         boolean running = true;
         while (running) {
             com.voltstream.util.VisualUtility.clearScreen();
@@ -37,72 +38,7 @@ public class Main {
 
             switch (choice) {
                 case 1:
-                    System.out.println("\n--- 🧬 CONFIGURE VEHICLE INFRASTRUCTURE PROFILES ---");
-                    VehicleType[] types = VehicleType.values();
-                    
-                    for (int i = 0; i < types.length; i++) {
-                        System.out.printf("%d. %-18s (Intake Bound: %5.1f kW | Battery Capacity: %3.0f kWh)%n", 
-                            (i + 1), types[i].getDisplayName(), types[i].getMaxChargingRate(), types[i].getBatteryCapacity());
-                    }
-                    
-                    System.out.printf("Select Vehicle Category [1-%d]: ", types.length);
-                    String typeInput = scanner.nextLine().trim();
-                    int typeChoice = 0;
-                    
-                    try {
-                        typeChoice = Integer.parseInt(typeInput);
-                    } catch (NumberFormatException e) {
-                        System.out.println("[⚠️] Invalid selection type. Returning to cockpit.");
-                        System.out.print("\nPress Enter to return to main menu...");
-                        scanner.nextLine();
-                        break;
-                    }
-
-                    if (typeChoice < 1 || typeChoice > types.length) {
-                        System.out.println("[⚠️] Selection outside operational boundaries.");
-                        System.out.print("\nPress Enter to return to main menu...");
-                        scanner.nextLine();
-                        break;
-                    }
-
-                    VehicleType selectedType = types[typeChoice - 1];
-
-                    System.out.print("Enter Unique Vehicle License Plate Number (e.g. MH-12-EV-77): ");
-                    String plate = scanner.nextLine().toUpperCase().trim();
-                    if (plate.isEmpty()) {
-                        System.out.println("[⚠️] Identifier missing. Aborting allocation mapping.");
-                        System.out.print("\nPress Enter to return to main menu...");
-                        scanner.nextLine();
-                        break;
-                    }
-
-                    System.out.print("Enter Initial State-of-Charge (SoC) Percentage (0-99): ");
-                    String socInput = scanner.nextLine().trim();
-                    double soc = 0.0;
-                    
-                    try {
-                        soc = Double.parseDouble(socInput);
-                    } catch (NumberFormatException e) {
-                        System.out.println("[⚠️] Numeric parsing anomaly. Invalid percentage format.");
-                        System.out.print("\nPress Enter to return to main menu...");
-                        scanner.nextLine();
-                        break;
-                    }
-
-                    try {
-                        ElectricVehicle newEV = new GenericEV(plate, selectedType, soc);
-                        boolean success = controller.dispatchVehicle(newEV);
-                        if (success) {
-                            System.out.println("[✔] Infrastructure Routing Complete: " + plate + " successfully routed to open hardware bay.");
-                        } else {
-                            System.out.println("[⚠️] Allocation Refused: All active hardware terminal slots currently saturated.");
-                        }
-                    } catch (com.voltstream.exception.InvalidVehicleException e) {
-                        System.out.println("\n[❌ GRID REJECTION] " + e.getMessage());
-                    }
-                    
-                    System.out.print("\nPress Enter to return to main menu...");
-                    scanner.nextLine();
+                	handleVehicleDocking(scanner, controller);
                     break;
 
                 case 2:
@@ -134,4 +70,80 @@ public class Main {
         scanner.close();
         System.out.println("================ ENGINE HALTED CLEANLY ================");
     }
+    
+    private static void handleVehicleDocking(Scanner scanner, EVNetworkController controller) {
+
+        System.out.println("\n--- Configure Vehicle ---");
+        VehicleType[] types = VehicleType.values();
+
+        for (int i = 0; i < types.length; i++) {
+            System.out.printf("%d. %-18s (Max Rate: %.1f kW | Battery: %.0f kWh)%n",
+                    i + 1,
+                    types[i].getDisplayName(),
+                    types[i].getMaxChargingRate(),
+                    types[i].getBatteryCapacity());
+        }
+
+        System.out.printf("Select Vehicle Type [1-%d]: ", types.length);
+
+        int typeChoice;
+
+        try {
+            typeChoice = Integer.parseInt(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid selection.");
+            waitForEnter(scanner);
+            return;
+        }
+
+        if (typeChoice < 1 || typeChoice > types.length) {
+            System.out.println("Selection out of range.");
+            waitForEnter(scanner);
+            return;
+        }
+
+        VehicleType selectedType = types[typeChoice - 1];
+
+        System.out.print("License Plate: ");
+        String plate = scanner.nextLine().trim().toUpperCase();
+
+        if (plate.isEmpty()) {
+            System.out.println("License plate cannot be empty.");
+            waitForEnter(scanner);
+            return;
+        }
+
+        System.out.print("Initial Charge (0-99%): ");
+
+        double soc;
+
+        try {
+            soc = Double.parseDouble(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid percentage.");
+            waitForEnter(scanner);
+            return;
+        }
+
+        try {
+            ElectricVehicle newEV = new GenericEV(plate, selectedType, soc);
+
+            if (controller.dispatchVehicle(newEV)) {
+                System.out.println("Vehicle successfully assigned to a charging bay.");
+            } else {
+                System.out.println("No charging bays are currently available.");
+            }
+
+        } catch (com.voltstream.exception.InvalidVehicleException e) {
+            System.out.println(e.getMessage());
+        }
+
+        waitForEnter(scanner);
+    }
+    
+    private static void waitForEnter(Scanner scanner) {
+        System.out.print("\nPress Enter to continue...");
+        scanner.nextLine();
+    }
 }
+

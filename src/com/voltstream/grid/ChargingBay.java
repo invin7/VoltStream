@@ -36,17 +36,6 @@ public abstract class ChargingBay implements ChargingInterface {
 
     @Override
     public abstract double getMaximumHardwareOutput(); 
+    public abstract double getTariffMultiplier();
 } 
 
-
-class UltraFastBay extends ChargingBay {
-    public UltraFastBay(String bayId) { super(bayId); }
-    @Override 
-    public double getMaximumHardwareOutput() { return 350.0; }
-}
-
-class FastDCBay extends ChargingBay {
-    public FastDCBay(String bayId) { super(bayId); }
-    @Override 
-    public double getMaximumHardwareOutput() { return 150.0; }
-}
