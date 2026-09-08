@@ -1,0 +1,184 @@
+@startuml VoltStream_Detailed_UML
+title VoltStream — Detailed Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+hide empty members
+
+package "grid.core" {
+  class EVNetworkController {
+    - stationBays: List<ChargingBay>
+    - listeners: List<ChargingEventListener>
+    - maxGridCapacityKw: double
+    - totalRevenueGenerated: double = 0.0
+    + EVNetworkController(maxGridCapacityKw: double)
+    + addBay(bay: ChargingBay): void
+    + addListener(listener: ChargingEventListener): void
+    + dispatchVehicle(ev: ElectricVehicle): boolean
+    + getGridLoadFactor(): double
+    + optimizeGridPower(): void
+    + executeTimeStep(hours: double): void
+    - notifyDocked(bay: ChargingBay, ev: ElectricVehicle): void
+    - notifyChargingComplete(bay: ChargingBay, ev: ElectricVehicle): void
+    - notifyStepStart(gridLoadFactor: double): void
+    - notifyBayCharging(bay: ChargingBay, ev: ElectricVehicle, power: double, tariff: double): void
+    - notifyBayIdle(bay: ChargingBay): void
+    - notifyStepEnd(totalRevenue: double): void
+  }
+}
+
+package "grid.charging" {
+  interface ChargingInterface {
+    + getMaximumHardwareOutput(): double
+    + dock(ev: ElectricVehicle): boolean
+    + undock(): void
+  }
+
+  abstract class ChargingBay {
+    {static} - BASE_RATE_PER_KWH: double = 8.50
+    - bayId: String
+    - dockedVehicle: ElectricVehicle
+    - currentAllocatedPower: double
+    - tariffStrategy: TariffStrategy
+    + ChargingBay(bayId: String, tariffStrategy: TariffStrategy)
+    + getBayId(): String
+    + getDockedVehicle(): ElectricVehicle
+    + isOccupied(): boolean
+    + getCurrentAllocatedPower(): double
+    + setAllocatedPower(power: double): void
+    + getBillableRate(gridLoadFactor: double): double
+    + dock(ev: ElectricVehicle): boolean
+    + undock(): void
+    {abstract} + getMaximumHardwareOutput(): double
+  }
+
+  class UltraFastBay {
+    + UltraFastBay(bayId: String)
+    + getMaximumHardwareOutput(): double
+  }
+
+  class FastDCBay {
+    + FastDCBay(bayId: String)
+    + getMaximumHardwareOutput(): double
+  }
+
+  class ChargingBayFactory <<factory>> {
+    {static} + createBay(type: String, bayId: String): ChargingBay
+  }
+}
+
+package "grid.vehicles" {
+  class ElectricVehicle {
+    - plateNumber: String
+    - batteryCapacity: double
+    - maxChargingRate: double
+    - currentCharge: double
+    + ElectricVehicle(plateNumber: String, batteryCapacity: double, maxChargingRate: double, initialChargePercentage: double)
+    + getPlateNumber(): String
+    + getBatteryCapacity(): double
+    + getCurrentCharge(): double
+    + getMaxChargingRate(): double
+    + getChargePercentage(): double
+    + energyDelivered(kwh: double): void
+    + isFullyCharged(): boolean
+  }
+
+  class VehicleFactory <<factory>> {
+    {static} - CATALOG: Map<String, VehicleSpec>
+    {static} + getAvailableTypes(): String[]
+    {static} + getDisplayName(type: String): String
+    {static} + getBatteryCapacity(type: String): double
+    {static} + getMaxChargingRate(type: String): double
+    {static} + createVehicle(type: String, plateNumber: String, initialChargePercentage: double): ElectricVehicle
+  }
+  class VehicleSpec <<record>> {
+    + displayName: String
+    + batteryCapacity: double
+    + maxChargingRate: double
+  }
+}
+
+package "grid.tariff" {
+  interface TariffStrategy {
+    + getMultiplier(gridLoadFactor: double): double
+  }
+  class FlatTariffStrategy {
+    - multiplier: double
+    + FlatTariffStrategy(multiplier: double)
+    + getMultiplier(gridLoadFactor: double): double
+  }
+  class PeakSurchargeTariffStrategy {
+    - baseMultiplier: double
+    - peakSurcharge: double
+    - loadThreshold: double
+    + PeakSurchargeTariffStrategy(baseMultiplier: double, peakSurcharge: double, loadThreshold: double)
+    + getMultiplier(gridLoadFactor: double): double
+  }
+}
+
+package "grid.events" {
+  interface ChargingEventListener {
+    + onVehicleDocked(bay: ChargingBay, ev: ElectricVehicle): void
+    + onChargingComplete(bay: ChargingBay, ev: ElectricVehicle): void
+    + onStepStart(gridLoadFactor: double): void
+    + onBayCharging(bay: ChargingBay, ev: ElectricVehicle, power: double, tariff: double): void
+    + onBayIdle(bay: ChargingBay): void
+    + onStepEnd(totalRevenue: double): void
+  }
+  class ConsoleDashboardListener {
+    + onVehicleDocked(bay: ChargingBay, ev: ElectricVehicle): void
+    + onChargingComplete(bay: ChargingBay, ev: ElectricVehicle): void
+    + onStepStart(gridLoadFactor: double): void
+    + onBayCharging(bay: ChargingBay, ev: ElectricVehicle, power: double, tariff: double): void
+    + onBayIdle(bay: ChargingBay): void
+    + onStepEnd(totalRevenue: double): void
+  }
+}
+
+package "grid.util" {
+  class VisualUtility <<utility>> {
+    {static} + printSeparator(): void
+    {static} + printStatusHeader(utilization: double): void
+    {static} + clearScreen(): void
+  }
+}
+
+package "grid" {
+  class Main <<application>> {
+    {static} - GRID_CAPACITY: double = 400.0
+    {static} - TOTAL_BAYS: int = 3
+    {static} - TIME_STEP: double = 0.2
+    {static} + main(args: String[]): void
+    {static} - handleVehicleDocking(scanner: Scanner, controller: EVNetworkController): void
+    {static} - waitForEnter(scanner: Scanner): void
+  }
+}
+
+ChargingInterface <|.. ChargingBay
+ChargingBay <|-- UltraFastBay
+ChargingBay <|-- FastDCBay
+TariffStrategy <|.. FlatTariffStrategy
+TariffStrategy <|.. PeakSurchargeTariffStrategy
+ChargingEventListener <|.. ConsoleDashboardListener
+
+EVNetworkController *-- "0..*" ChargingBay : stationBays
+EVNetworkController *-- "0..*" ChargingEventListener : listeners
+ChargingBay *-- "1" TariffStrategy : tariffStrategy
+ChargingBay --> "0..1" ElectricVehicle : dockedVehicle
+VehicleFactory *-- "0..*" VehicleSpec : CATALOG values
+
+ChargingBayFactory ..> UltraFastBay : <<create>>
+ChargingBayFactory ..> FastDCBay : <<create>>
+UltraFastBay ..> PeakSurchargeTariffStrategy : <<create>>
+FastDCBay ..> PeakSurchargeTariffStrategy : <<create>>
+VehicleFactory ..> ElectricVehicle : <<create>>
+ConsoleDashboardListener ..> VisualUtility : <<use>>
+ConsoleDashboardListener ..> ChargingBay
+ConsoleDashboardListener ..> ElectricVehicle
+Main ..> EVNetworkController : <<use>>
+Main ..> ChargingBayFactory : <<use>>
+Main ..> VehicleFactory : <<use>>
+Main ..> ConsoleDashboardListener : <<create>>
+Main ..> VisualUtility : <<use>>
+@enduml

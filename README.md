@@ -31,22 +31,19 @@ The project was built to demonstrate core **Object-Oriented Programming (OOP)** 
 
 ## 🏗️ System Architecture
 
+The UML diagrams reflect the current implementation:
+
+- [Skeletal UML class diagram](voltstream-skeletal.puml) — high-level relationships between the main components
+- [Detailed UML class diagram](voltstream-detailed.puml) — class attributes, operations, multiplicities, and dependencies
+
 ```
-                    EVNetworkController
-                             │
-          ┌──────────────────┴──────────────────┐
-          │                                     │
-     Charging Bays                      Tariff Engine
-          │
-     ┌────┴────┐
-     │         │
-UltraFast   FastDC
-     │         │
-     └────┬────┘
-          │
-   ElectricVehicle
-          │
-      GenericEV
+                         EVNetworkController
+                       /          |            \
+              Charging Bays    Event Listeners   Grid Capacity
+                    |                 |
+        UltraFastBay / FastDCBay  ConsoleDashboardListener
+                    |
+          ElectricVehicle + TariffStrategy
 ```
 
 The **EVNetworkController** acts as the central coordinator by:
@@ -66,20 +63,29 @@ VoltStream
 │
 ├── src
 │   ├── grid
-│   │   ├── EVNetworkController.java
-│   │   ├── ChargingBay.java
-│   │   ├── FastDCBay.java
-│   │   ├── UltraFastBay.java
-│   │   ├── TariffEngine.java
-│   │   ├── GenericEV.java
-│   │   ├── VehicleType.java
-│   │   └── Main.java
-│   │
-│   ├── exception
-│   │   └── InvalidVehicleException.java
-│   │
-│   └── util
-│       └── VisualUtility.java
+│   │   ├── Main.java
+│   │   ├── charging
+│   │   │   ├── ChargingBay.java
+│   │   │   ├── ChargingBayFactory.java
+│   │   │   ├── ChargingInterface.java
+│   │   │   ├── FastDCBay.java
+│   │   │   └── UltraFastBay.java
+│   │   ├── core
+│   │   │   └── EVNetworkController.java
+│   │   ├── events
+│   │   │   ├── ChargingEventListener.java
+│   │   │   └── ConsoleDashboardListener.java
+│   │   ├── tariff
+│   │   │   ├── FlatTariffStrategy.java
+│   │   │   ├── PeakSurchargeTariffStrategy.java
+│   │   │   └── TariffStrategy.java
+│   │   ├── util
+│   │   │   └── VisualUtility.java
+│   │   ├── vehicles
+│   │       ├── ElectricVehicle.java
+│   │       └── VehicleFactory.java
+├── voltstream-detailed.puml
+└── voltstream-skeletal.puml
 ```
 
 ---
@@ -157,36 +163,3 @@ java com.voltstream.grid.Main
 Or simply import the project into Eclipse and run `Main.java`.
 
 ---
-
-## 📸 Screenshots
-
-### Main Menu
-
-![Main Menu](docs/main-menu.png)
-
-### Add Vehicle
-
-![Add Vehicle](docs/add-vehicle.png)
-
-### Live Dashboard
-
-![Dashboard](docs/dashboard.png)
-
-### Charging Progress
-
-![Charging Progress](docs/charging-progress.png)
-
----
-
-## 🎯 Learning Outcomes
-
-This project strengthened my understanding of:
-
-- Designing software using Object-Oriented principles
-- Modeling real-world systems through abstraction
-- Building modular Java applications
-- Applying polymorphism to simplify business logic
-- Simulating constrained resource allocation problems
-
----
-

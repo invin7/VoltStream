@@ -1,0 +1,59 @@
+@startuml VoltStream_Skeletal_UML
+title VoltStream — Skeletal Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+package "Core" {
+  class EVNetworkController
+}
+
+package "Charging" {
+  interface ChargingInterface
+  abstract class ChargingBay
+  class UltraFastBay
+  class FastDCBay
+  class ChargingBayFactory <<factory>>
+}
+
+package "Vehicles" {
+  class ElectricVehicle
+  class VehicleFactory <<factory>>
+}
+
+package "Tariffs" {
+  interface TariffStrategy
+  class FlatTariffStrategy
+  class PeakSurchargeTariffStrategy
+}
+
+package "Events / UI" {
+  interface ChargingEventListener
+  class ConsoleDashboardListener
+  class Main <<application>>
+  class VisualUtility <<utility>>
+}
+
+ChargingInterface <|.. ChargingBay
+ChargingBay <|-- UltraFastBay
+ChargingBay <|-- FastDCBay
+
+TariffStrategy <|.. FlatTariffStrategy
+TariffStrategy <|.. PeakSurchargeTariffStrategy
+ChargingBay *-- TariffStrategy : tariff strategy
+ChargingBay --> "0..1" ElectricVehicle : docked vehicle
+
+EVNetworkController *-- "0..*" ChargingBay : manages
+EVNetworkController o-- "0..*" ChargingEventListener : notifies
+ChargingEventListener <|.. ConsoleDashboardListener
+
+ChargingBayFactory ..> UltraFastBay : creates
+ChargingBayFactory ..> FastDCBay : creates
+VehicleFactory ..> ElectricVehicle : creates
+
+Main ..> EVNetworkController
+Main ..> ChargingBayFactory
+Main ..> VehicleFactory
+ConsoleDashboardListener ..> VisualUtility
+@enduml
