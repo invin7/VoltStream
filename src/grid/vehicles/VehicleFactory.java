@@ -1,5 +1,7 @@
 package grid.vehicles;
 
+import grid.exceptions.InvalidVehicleConfigurationException;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -39,14 +41,20 @@ public class VehicleFactory {
 
     // --- Factory method ---
 
-    public static ElectricVehicle createVehicle(String type, String plateNumber, double initialChargePercentage) {
-        if (initialChargePercentage >= 100.0) {
-            return null;
-        }
-
+    public static ElectricVehicle createVehicle(String type, String plateNumber, double initialChargePercentage)
+            throws InvalidVehicleConfigurationException {
         VehicleSpec spec = CATALOG.get(type);
         if (spec == null) {
-            return null;
+            throw new InvalidVehicleConfigurationException("Unknown vehicle type: " + type);
+        }
+        if (plateNumber == null || plateNumber.isBlank()) {
+            throw new InvalidVehicleConfigurationException("License plate cannot be empty.");
+        }
+        if (Double.isNaN(initialChargePercentage) || initialChargePercentage < 0.0) {
+            throw new InvalidVehicleConfigurationException("Charge percentage cannot be negative.");
+        }
+        if (initialChargePercentage >= 100.0) {
+            throw new InvalidVehicleConfigurationException("Invalid charge percentage: vehicle must be below 100%.");
         }
 
         return new ElectricVehicle(plateNumber, spec.batteryCapacity(), spec.maxChargingRate(), initialChargePercentage);

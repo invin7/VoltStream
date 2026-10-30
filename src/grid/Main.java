@@ -6,6 +6,9 @@ import grid.vehicles.ElectricVehicle;
 import grid.vehicles.VehicleFactory;
 import grid.charging.ChargingBayFactory;
 import grid.core.EVNetworkController;
+import grid.exceptions.BayDockingException;
+import grid.exceptions.InvalidVehicleConfigurationException;
+import grid.exceptions.NoAvailableBayException;
 import grid.events.ConsoleDashboardListener;
 import grid.util.VisualUtility;
 
@@ -126,12 +129,6 @@ public class Main {
         System.out.print("Enter license plate: ");
         String plate = scanner.nextLine().trim().toUpperCase();
 
-        if (plate.isEmpty()) {
-            System.out.println("License plate cannot be empty.");
-            waitForEnter(scanner);
-            return;
-        }
-
         System.out.print("Enter initial charge (0\u201399%): ");
 
         double soc;
@@ -144,12 +141,11 @@ public class Main {
             return;
         }
 
-        ElectricVehicle newEV = VehicleFactory.createVehicle(selectedType, plate, soc);
-
-        if (newEV == null) {
-            System.out.println("Invalid charge percentage: vehicle must be below 100%.");
-        } else if (!controller.dispatchVehicle(newEV)) {
-            System.out.println("No charging bays are currently available.");
+        try {
+            ElectricVehicle newEV = VehicleFactory.createVehicle(selectedType, plate, soc);
+            controller.dispatchVehicle(newEV);
+        } catch (InvalidVehicleConfigurationException | NoAvailableBayException | BayDockingException e) {
+            System.out.println(e.getMessage());
         }
 
         waitForEnter(scanner);

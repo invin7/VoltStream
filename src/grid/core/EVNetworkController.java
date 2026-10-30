@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import grid.charging.ChargingBay;
+import grid.exceptions.BayDockingException;
+import grid.exceptions.InvalidGridConfigurationException;
+import grid.exceptions.NoAvailableBayException;
 import grid.vehicles.ElectricVehicle;
 import grid.events.ChargingEventListener;
 
@@ -15,6 +18,9 @@ public class EVNetworkController {
     private double totalRevenueGenerated = 0.0;
 
     public EVNetworkController(double maxGridCapacityKw) {
+        if (maxGridCapacityKw <= 0) {
+            throw new InvalidGridConfigurationException("Grid capacity must be positive: " + maxGridCapacityKw);
+        }
         this.stationBays = new ArrayList<>();
         this.listeners = new ArrayList<>();
         this.maxGridCapacityKw = maxGridCapacityKw;
@@ -64,15 +70,16 @@ public class EVNetworkController {
         }
     }
 
-    public boolean dispatchVehicle(ElectricVehicle ev) {
+    public void dispatchVehicle(ElectricVehicle ev) throws NoAvailableBayException, BayDockingException {
         for (ChargingBay bay : stationBays) {
-            if (!bay.isOccupied() && bay.dock(ev)) {
+            if (!bay.isOccupied()) {
+                bay.dock(ev);
                 notifyDocked(bay, ev);
                 optimizeGridPower();
-                return true;
+                return;
             }
         }
-        return false;
+        throw new NoAvailableBayException();
     }
 
     public double getGridLoadFactor() {
@@ -112,6 +119,9 @@ public class EVNetworkController {
     }
 
     public void executeTimeStep(double hours) {
+        if (hours < 0 || Double.isNaN(hours)) {
+            throw new InvalidGridConfigurationException("Time step cannot be negative: " + hours);
+        }
         double loadFactor = getGridLoadFactor();
         notifyStepStart(loadFactor);
         for (ChargingBay bay : stationBays) {

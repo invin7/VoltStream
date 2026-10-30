@@ -12,13 +12,13 @@ package "grid.core" {
     - listeners: List<ChargingEventListener>
     - maxGridCapacityKw: double
     - totalRevenueGenerated: double = 0.0
-    + EVNetworkController(maxGridCapacityKw: double)
+    + EVNetworkController(maxGridCapacityKw: double) <<throws InvalidGridConfigurationException>>
     + addBay(bay: ChargingBay): void
     + addListener(listener: ChargingEventListener): void
-    + dispatchVehicle(ev: ElectricVehicle): boolean
+    + dispatchVehicle(ev: ElectricVehicle): void <<throws NoAvailableBayException, BayDockingException>>
     + getGridLoadFactor(): double
     + optimizeGridPower(): void
-    + executeTimeStep(hours: double): void
+    + executeTimeStep(hours: double): void <<throws InvalidGridConfigurationException>>
     - notifyDocked(bay: ChargingBay, ev: ElectricVehicle): void
     - notifyChargingComplete(bay: ChargingBay, ev: ElectricVehicle): void
     - notifyStepStart(gridLoadFactor: double): void
@@ -31,7 +31,7 @@ package "grid.core" {
 package "grid.charging" {
   interface ChargingInterface {
     + getMaximumHardwareOutput(): double
-    + dock(ev: ElectricVehicle): boolean
+    + dock(ev: ElectricVehicle): void <<throws BayDockingException>>
     + undock(): void
   }
 
@@ -48,7 +48,7 @@ package "grid.charging" {
     + getCurrentAllocatedPower(): double
     + setAllocatedPower(power: double): void
     + getBillableRate(gridLoadFactor: double): double
-    + dock(ev: ElectricVehicle): boolean
+    + dock(ev: ElectricVehicle): void <<throws BayDockingException>>
     + undock(): void
     {abstract} + getMaximumHardwareOutput(): double
   }
@@ -64,7 +64,7 @@ package "grid.charging" {
   }
 
   class ChargingBayFactory <<factory>> {
-    {static} + createBay(type: String, bayId: String): ChargingBay
+    {static} + createBay(type: String, bayId: String): ChargingBay <<throws UnknownBayTypeException>>
   }
 }
 
@@ -90,7 +90,7 @@ package "grid.vehicles" {
     {static} + getDisplayName(type: String): String
     {static} + getBatteryCapacity(type: String): double
     {static} + getMaxChargingRate(type: String): double
-    {static} + createVehicle(type: String, plateNumber: String, initialChargePercentage: double): ElectricVehicle
+    {static} + createVehicle(type: String, plateNumber: String, initialChargePercentage: double): ElectricVehicle <<throws InvalidVehicleConfigurationException>>
   }
   class VehicleSpec <<record>> {
     + displayName: String
@@ -114,6 +114,24 @@ package "grid.tariff" {
     - loadThreshold: double
     + PeakSurchargeTariffStrategy(baseMultiplier: double, peakSurcharge: double, loadThreshold: double)
     + getMultiplier(gridLoadFactor: double): double
+  }
+}
+
+package "grid.exceptions" {
+  class InvalidVehicleConfigurationException <<checked>> {
+    + InvalidVehicleConfigurationException(message: String)
+  }
+  class NoAvailableBayException <<checked>> {
+    + NoAvailableBayException()
+  }
+  class BayDockingException <<checked>> {
+    + BayDockingException(message: String)
+  }
+  class UnknownBayTypeException <<unchecked>> {
+    + UnknownBayTypeException(type: String)
+  }
+  class InvalidGridConfigurationException <<unchecked>> {
+    + InvalidGridConfigurationException(message: String)
   }
 }
 
@@ -155,6 +173,12 @@ package "grid" {
   }
 }
 
+Exception <|-- InvalidVehicleConfigurationException
+Exception <|-- NoAvailableBayException
+Exception <|-- BayDockingException
+RuntimeException <|-- UnknownBayTypeException
+RuntimeException <|-- InvalidGridConfigurationException
+
 ChargingInterface <|.. ChargingBay
 ChargingBay <|-- UltraFastBay
 ChargingBay <|-- FastDCBay
@@ -176,6 +200,15 @@ VehicleFactory ..> ElectricVehicle : <<create>>
 ConsoleDashboardListener ..> VisualUtility : <<use>>
 ConsoleDashboardListener ..> ChargingBay
 ConsoleDashboardListener ..> ElectricVehicle
+VehicleFactory ..> InvalidVehicleConfigurationException : <<throws>>
+EVNetworkController ..> NoAvailableBayException : <<throws>>
+EVNetworkController ..> BayDockingException : <<throws>>
+EVNetworkController ..> InvalidGridConfigurationException : <<throws>>
+ChargingBay ..> BayDockingException : <<throws>>
+ChargingBayFactory ..> UnknownBayTypeException : <<throws>>
+Main ..> InvalidVehicleConfigurationException : <<catch>>
+Main ..> NoAvailableBayException : <<catch>>
+Main ..> BayDockingException : <<catch>>
 Main ..> EVNetworkController : <<use>>
 Main ..> ChargingBayFactory : <<use>>
 Main ..> VehicleFactory : <<use>>

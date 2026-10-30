@@ -1,5 +1,7 @@
 package grid.charging;
 
+import grid.exceptions.UnknownBayTypeException;
+
 public class ChargingBayFactory {
 
     public static ChargingBay createBay(String type, String bayId) {
@@ -9,7 +11,7 @@ public class ChargingBayFactory {
             case "FAST_DC":
                 return new FastDCBay(bayId);
             default:
-                throw new IllegalArgumentException("Unknown bay type: " + type);
+                throw new UnknownBayTypeException(type);
         }
     }
 }

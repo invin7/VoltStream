@@ -28,12 +28,26 @@ package "Tariffs" {
   class PeakSurchargeTariffStrategy
 }
 
+package "Exceptions" {
+  class InvalidVehicleConfigurationException <<checked>>
+  class NoAvailableBayException <<checked>>
+  class BayDockingException <<checked>>
+  class UnknownBayTypeException <<unchecked>>
+  class InvalidGridConfigurationException <<unchecked>>
+}
+
 package "Events / UI" {
   interface ChargingEventListener
   class ConsoleDashboardListener
   class Main <<application>>
   class VisualUtility <<utility>>
 }
+
+Exception <|-- InvalidVehicleConfigurationException
+Exception <|-- NoAvailableBayException
+Exception <|-- BayDockingException
+RuntimeException <|-- UnknownBayTypeException
+RuntimeException <|-- InvalidGridConfigurationException
 
 ChargingInterface <|.. ChargingBay
 ChargingBay <|-- UltraFastBay
@@ -51,6 +65,16 @@ ChargingEventListener <|.. ConsoleDashboardListener
 ChargingBayFactory ..> UltraFastBay : creates
 ChargingBayFactory ..> FastDCBay : creates
 VehicleFactory ..> ElectricVehicle : creates
+
+VehicleFactory ..> InvalidVehicleConfigurationException : throws
+EVNetworkController ..> NoAvailableBayException : throws
+EVNetworkController ..> BayDockingException : throws
+EVNetworkController ..> InvalidGridConfigurationException : throws
+ChargingBay ..> BayDockingException : throws
+ChargingBayFactory ..> UnknownBayTypeException : throws
+Main ..> InvalidVehicleConfigurationException : catches
+Main ..> NoAvailableBayException : catches
+Main ..> BayDockingException : catches
 
 Main ..> EVNetworkController
 Main ..> ChargingBayFactory

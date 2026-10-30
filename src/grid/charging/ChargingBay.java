@@ -1,5 +1,6 @@
 package grid.charging;
 
+import grid.exceptions.BayDockingException;
 import grid.vehicles.ElectricVehicle;
 import grid.tariff.TariffStrategy;
 
@@ -34,11 +35,11 @@ public abstract class ChargingBay implements ChargingInterface {
     }
 
     @Override
-    public boolean dock(ElectricVehicle ev) {
-        if (ev == null) return false;
-        if (ev.isFullyCharged()) return false;
+    public void dock(ElectricVehicle ev) throws BayDockingException {
+        if (ev == null) throw new BayDockingException("Cannot dock a null vehicle.");
+        if (ev.isFullyCharged()) throw new BayDockingException("Vehicle " + ev.getPlateNumber() + " is already fully charged.");
+        if (isOccupied()) throw new BayDockingException("Bay " + bayId + " is already occupied.");
         this.dockedVehicle = ev;
-        return true;
     }
 
     @Override
