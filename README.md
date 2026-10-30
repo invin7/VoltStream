@@ -21,8 +21,8 @@ Built as a showcase of object-oriented design: interfaces, inheritance, factorie
 
 ## Features
 
-- Four vehicle types (sedan, heavy truck, scooter, bus), each with its own battery capacity and maximum charging rate
-- Two bay types: Ultra-Fast (350 kW) and Fast-DC (150 kW)
+- Four vehicle types (`VehicleType` enum: sedan, heavy truck, scooter, bus), each with its own battery capacity and maximum charging rate
+- Two bay types (`BayType` enum): Ultra-Fast (350 kW) and Fast-DC (150 kW)
 - Automatic dispatch of arriving vehicles to the first free bay
 - Proportional power scaling when total demand exceeds grid capacity
 - Dynamic tariffs: a per-bay-type multiplier plus a surcharge when grid utilization passes 75%
@@ -33,7 +33,7 @@ Built as a showcase of object-oriented design: interfaces, inheritance, factorie
 
 ### Prerequisites
 
-- JDK 16 or newer (the project uses records)
+- JDK 16 or newer (the project uses switch expressions)
 
 ### Build and run
 
@@ -110,10 +110,10 @@ UML class diagrams (PlantUML):
 
 | Exception | Type | Raised when |
 |-----------|------|-------------|
-| `InvalidVehicleConfigurationException` | Checked | Unknown vehicle type, empty plate, or charge outside 0–99% |
+| `InvalidVehicleConfigurationException` | Checked | Missing vehicle type, empty plate, or charge outside 0–99% |
 | `NoAvailableBayException` | Checked | Every charging bay is occupied |
 | `BayDockingException` | Checked | A null or fully charged vehicle is docked, or the bay is occupied |
-| `UnknownBayTypeException` | Unchecked | `ChargingBayFactory` is asked for an unknown bay type |
+| `UnknownBayTypeException` | Unchecked | `ChargingBayFactory` is given a null bay type |
 | `InvalidGridConfigurationException` | Unchecked | Grid capacity is not positive, or a time step is negative |
 
 Checked exceptions cover problems caused by user input or runtime conditions that callers can recover from. Unchecked exceptions cover programming and configuration errors.
@@ -128,20 +128,21 @@ VoltStream
 ├── voltstream-skeletal.puml
 └── src/grid
     ├── Main.java
-    ├── charging      ChargingBay, ChargingInterface, UltraFastBay, FastDCBay, ChargingBayFactory
+    ├── charging      ChargingBay, ChargingInterface, BayType, UltraFastBay, FastDCBay, ChargingBayFactory
     ├── core          EVNetworkController
     ├── events        ChargingEventListener, ConsoleDashboardListener
     ├── exceptions    custom checked and unchecked exceptions
     ├── tariff        TariffStrategy, FlatTariffStrategy, PeakSurchargeTariffStrategy
     ├── util          VisualUtility
-    └── vehicles      ElectricVehicle, VehicleFactory
+    └── vehicles      ElectricVehicle, VehicleType, VehicleFactory
 ```
 
 ## Design Patterns and OOP Concepts
 
-- **Strategy**: `TariffStrategy` implementations decide pricing
+- **Strategy**: `TariffStrategy` implementations decide pricing. `FlatTariffStrategy` is not wired to a bay yet; it shows how a new pricing rule can be added without touching the bays or the controller (Open/Closed principle)
 - **Observer**: `ChargingEventListener` receives controller events
 - **Factory**: `VehicleFactory` and `ChargingBayFactory` centralize creation and validation
+- **Enums**: `VehicleType` (with per-type battery capacity and charge rate) and `BayType` replace string identifiers
 - Abstraction, encapsulation, inheritance, polymorphism and interfaces
 - Composition (bays own a tariff strategy; the controller owns bays)
 - Checked and unchecked custom exceptions

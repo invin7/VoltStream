@@ -63,8 +63,13 @@ package "grid.charging" {
     + getMaximumHardwareOutput(): double
   }
 
+  enum BayType {
+    ULTRA_FAST
+    FAST_DC
+  }
+
   class ChargingBayFactory <<factory>> {
-    {static} + createBay(type: String, bayId: String): ChargingBay <<throws UnknownBayTypeException>>
+    {static} + createBay(type: BayType, bayId: String): ChargingBay
   }
 }
 
@@ -85,17 +90,19 @@ package "grid.vehicles" {
   }
 
   class VehicleFactory <<factory>> {
-    {static} - CATALOG: Map<String, VehicleSpec>
-    {static} + getAvailableTypes(): String[]
-    {static} + getDisplayName(type: String): String
-    {static} + getBatteryCapacity(type: String): double
-    {static} + getMaxChargingRate(type: String): double
-    {static} + createVehicle(type: String, plateNumber: String, initialChargePercentage: double): ElectricVehicle <<throws InvalidVehicleConfigurationException>>
+    {static} + createVehicle(type: VehicleType, plateNumber: String, initialChargePercentage: double): ElectricVehicle <<throws InvalidVehicleConfigurationException>>
   }
-  class VehicleSpec <<record>> {
-    + displayName: String
-    + batteryCapacity: double
-    + maxChargingRate: double
+  enum VehicleType {
+    SEDAN
+    HEAVY_TRUCK
+    SCOOTER
+    BUS
+    - displayName: String
+    - batteryCapacity: double
+    - maxChargingRate: double
+    + getDisplayName(): String
+    + getBatteryCapacity(): double
+    + getMaxChargingRate(): double
   }
 }
 
@@ -126,9 +133,6 @@ package "grid.exceptions" {
   }
   class BayDockingException <<checked>> {
     + BayDockingException(message: String)
-  }
-  class UnknownBayTypeException <<unchecked>> {
-    + UnknownBayTypeException(type: String)
   }
   class InvalidGridConfigurationException <<unchecked>> {
     + InvalidGridConfigurationException(message: String)
@@ -176,7 +180,6 @@ package "grid" {
 Exception <|-- InvalidVehicleConfigurationException
 Exception <|-- NoAvailableBayException
 Exception <|-- BayDockingException
-RuntimeException <|-- UnknownBayTypeException
 RuntimeException <|-- InvalidGridConfigurationException
 
 ChargingInterface <|.. ChargingBay
@@ -190,7 +193,10 @@ EVNetworkController *-- "0..*" ChargingBay : stationBays
 EVNetworkController *-- "0..*" ChargingEventListener : listeners
 ChargingBay *-- "1" TariffStrategy : tariffStrategy
 ChargingBay --> "0..1" ElectricVehicle : dockedVehicle
-VehicleFactory *-- "0..*" VehicleSpec : CATALOG values
+VehicleFactory ..> VehicleType : <<use>>
+ChargingBayFactory ..> BayType : <<use>>
+Main ..> VehicleType : <<use>>
+Main ..> BayType : <<use>>
 
 ChargingBayFactory ..> UltraFastBay : <<create>>
 ChargingBayFactory ..> FastDCBay : <<create>>
@@ -205,7 +211,6 @@ EVNetworkController ..> NoAvailableBayException : <<throws>>
 EVNetworkController ..> BayDockingException : <<throws>>
 EVNetworkController ..> InvalidGridConfigurationException : <<throws>>
 ChargingBay ..> BayDockingException : <<throws>>
-ChargingBayFactory ..> UnknownBayTypeException : <<throws>>
 Main ..> InvalidVehicleConfigurationException : <<catch>>
 Main ..> NoAvailableBayException : <<catch>>
 Main ..> BayDockingException : <<catch>>

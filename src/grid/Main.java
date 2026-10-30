@@ -4,6 +4,8 @@ import java.util.Scanner;
 
 import grid.vehicles.ElectricVehicle;
 import grid.vehicles.VehicleFactory;
+import grid.vehicles.VehicleType;
+import grid.charging.BayType;
 import grid.charging.ChargingBayFactory;
 import grid.core.EVNetworkController;
 import grid.exceptions.BayDockingException;
@@ -22,9 +24,9 @@ public class Main {
         EVNetworkController controller = new EVNetworkController(GRID_CAPACITY);
         controller.addListener(new ConsoleDashboardListener());
 
-        controller.addBay(ChargingBayFactory.createBay("ULTRA_FAST", "BAY-01 (Ultra-Fast 350kW)"));
-        controller.addBay(ChargingBayFactory.createBay("ULTRA_FAST", "BAY-02 (Ultra-Fast 350kW)"));
-        controller.addBay(ChargingBayFactory.createBay("FAST_DC", "BAY-03 (Fast-DC 150kW)"));
+        controller.addBay(ChargingBayFactory.createBay(BayType.ULTRA_FAST, "BAY-01 (Ultra-Fast 350kW)"));
+        controller.addBay(ChargingBayFactory.createBay(BayType.ULTRA_FAST, "BAY-02 (Ultra-Fast 350kW)"));
+        controller.addBay(ChargingBayFactory.createBay(BayType.FAST_DC, "BAY-03 (Fast-DC 150kW)"));
         
         
         boolean running = true;
@@ -95,15 +97,15 @@ public class Main {
     private static void handleVehicleDocking(Scanner scanner, EVNetworkController controller) {
 
         System.out.println("\n========== Add Vehicle ==========");
-        String[] types = VehicleFactory.getAvailableTypes();
+        VehicleType[] types = VehicleType.values();
         System.out.println();
 
         for (int i = 0; i < types.length; i++) {
             System.out.printf("%d. %-18s (Max Rate: %.1f kW | Battery: %.0f kWh)%n",
                     i + 1,
-                    VehicleFactory.getDisplayName(types[i]),
-                    VehicleFactory.getMaxChargingRate(types[i]),
-                    VehicleFactory.getBatteryCapacity(types[i]));
+                    types[i].getDisplayName(),
+                    types[i].getMaxChargingRate(),
+                    types[i].getBatteryCapacity());
         }
 
         System.out.printf("Select Vehicle Type [1-%d]: ", types.length);
@@ -124,7 +126,7 @@ public class Main {
             return;
         }
 
-        String selectedType = types[typeChoice - 1];
+        VehicleType selectedType = types[typeChoice - 1];
 
         System.out.print("Enter license plate: ");
         String plate = scanner.nextLine().trim().toUpperCase();
