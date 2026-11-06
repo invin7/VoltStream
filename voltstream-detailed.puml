@@ -15,6 +15,9 @@ package "grid.core" {
     + EVNetworkController(maxGridCapacityKw: double) <<throws InvalidGridConfigurationException>>
     + addBay(bay: ChargingBay): void
     + addListener(listener: ChargingEventListener): void
+    + getBays(): List<ChargingBay>
+    + getMaxGridCapacityKw(): double
+    + getTotalRevenue(): double
     + dispatchVehicle(ev: ElectricVehicle): void <<throws NoAvailableBayException, BayDockingException>>
     + getGridLoadFactor(): double
     + optimizeGridPower(): void
@@ -36,6 +39,7 @@ package "grid.charging" {
   }
 
   abstract class ChargingBay {
+    {static} + PEAK_LOAD_THRESHOLD: double = 0.75
     {static} - BASE_RATE_PER_KWH: double = 8.50
     - bayId: String
     - dockedVehicle: ElectricVehicle
@@ -47,25 +51,31 @@ package "grid.charging" {
     + isOccupied(): boolean
     + getCurrentAllocatedPower(): double
     + setAllocatedPower(power: double): void
+    + getRequestedPower(): double
     + getBillableRate(gridLoadFactor: double): double
     + dock(ev: ElectricVehicle): void <<throws BayDockingException>>
     + undock(): void
     {abstract} + getMaximumHardwareOutput(): double
+    {abstract} + getBayType(): BayType
   }
 
   class UltraFastBay {
     + UltraFastBay(bayId: String)
     + getMaximumHardwareOutput(): double
+    + getBayType(): BayType
   }
 
   class FastDCBay {
     + FastDCBay(bayId: String)
     + getMaximumHardwareOutput(): double
+    + getBayType(): BayType
   }
 
   enum BayType {
     ULTRA_FAST
     FAST_DC
+    - displayName: String
+    + getDisplayName(): String
   }
 
   class ChargingBayFactory <<factory>> {
@@ -75,11 +85,13 @@ package "grid.charging" {
 
 package "grid.vehicles" {
   class ElectricVehicle {
+    - type: VehicleType
     - plateNumber: String
     - batteryCapacity: double
     - maxChargingRate: double
     - currentCharge: double
-    + ElectricVehicle(plateNumber: String, batteryCapacity: double, maxChargingRate: double, initialChargePercentage: double)
+    + ElectricVehicle(type: VehicleType, plateNumber: String, initialChargePercentage: double)
+    + getType(): VehicleType
     + getPlateNumber(): String
     + getBatteryCapacity(): double
     + getCurrentCharge(): double
@@ -148,7 +160,12 @@ package "grid.events" {
     + onBayIdle(bay: ChargingBay): void
     + onStepEnd(totalRevenue: double): void
   }
-  class ConsoleDashboardListener {
+  class EventLogListener {
+    {static} - MAX_ENTRIES: int = 200
+    - entries: Deque<Entry>
+    - stepCount: int = 0
+    + getStepCount(): int
+    + getEntries(): List<Entry>
     + onVehicleDocked(bay: ChargingBay, ev: ElectricVehicle): void
     + onChargingComplete(bay: ChargingBay, ev: ElectricVehicle): void
     + onStepStart(gridLoadFactor: double): void
@@ -158,22 +175,39 @@ package "grid.events" {
   }
 }
 
-package "grid.util" {
-  class VisualUtility <<utility>> {
-    {static} + printSeparator(): void
-    {static} + printStatusHeader(utilization: double): void
-    {static} + clearScreen(): void
+package "grid.web" {
+  class WebServer {
+    - server: HttpServer
+    - simulation: SimulationService
+    - webRoot: Path
+    + WebServer(port: int, webRoot: Path, simulation: SimulationService)
+    + start(): void
+    + getPort(): int
+    - handleApi(exchange: HttpExchange): void
+    - handleStatic(exchange: HttpExchange): void
+  }
+
+  class SimulationService {
+    {static} - GRID_CAPACITY: double = 400.0
+    {static} - TIME_STEP: double = 0.2
+    - controller: EVNetworkController
+    - eventLog: EventLogListener
+    + reset(): void
+    + addVehicle(type: String, plate: String, charge: String): void <<throws InvalidVehicleConfigurationException, NoAvailableBayException, BayDockingException>>
+    + step(): void
+    + snapshot(): Map<String, Object>
+  }
+
+  class Json <<utility>> {
+    {static} ~ write(value: Object): String
   }
 }
 
 package "grid" {
   class Main <<application>> {
-    {static} - GRID_CAPACITY: double = 400.0
-    {static} - TOTAL_BAYS: int = 3
-    {static} - TIME_STEP: double = 0.2
+    {static} - DEFAULT_PORT: int = 8080
+    {static} - WEB_ROOT: Path
     {static} + main(args: String[]): void
-    {static} - handleVehicleDocking(scanner: Scanner, controller: EVNetworkController): void
-    {static} - waitForEnter(scanner: Scanner): void
   }
 }
 
@@ -187,7 +221,7 @@ ChargingBay <|-- UltraFastBay
 ChargingBay <|-- FastDCBay
 TariffStrategy <|.. FlatTariffStrategy
 TariffStrategy <|.. PeakSurchargeTariffStrategy
-ChargingEventListener <|.. ConsoleDashboardListener
+ChargingEventListener <|.. EventLogListener
 
 EVNetworkController *-- "0..*" ChargingBay : stationBays
 EVNetworkController *-- "0..*" ChargingEventListener : listeners
@@ -195,28 +229,31 @@ ChargingBay *-- "1" TariffStrategy : tariffStrategy
 ChargingBay --> "0..1" ElectricVehicle : dockedVehicle
 VehicleFactory ..> VehicleType : <<use>>
 ChargingBayFactory ..> BayType : <<use>>
-Main ..> VehicleType : <<use>>
-Main ..> BayType : <<use>>
+ElectricVehicle --> "1" VehicleType : type
+SimulationService ..> VehicleType : <<use>>
+SimulationService ..> BayType : <<use>>
 
 ChargingBayFactory ..> UltraFastBay : <<create>>
 ChargingBayFactory ..> FastDCBay : <<create>>
 UltraFastBay ..> PeakSurchargeTariffStrategy : <<create>>
 FastDCBay ..> PeakSurchargeTariffStrategy : <<create>>
 VehicleFactory ..> ElectricVehicle : <<create>>
-ConsoleDashboardListener ..> VisualUtility : <<use>>
-ConsoleDashboardListener ..> ChargingBay
-ConsoleDashboardListener ..> ElectricVehicle
+EventLogListener ..> ChargingBay
+EventLogListener ..> ElectricVehicle
 VehicleFactory ..> InvalidVehicleConfigurationException : <<throws>>
 EVNetworkController ..> NoAvailableBayException : <<throws>>
 EVNetworkController ..> BayDockingException : <<throws>>
 EVNetworkController ..> InvalidGridConfigurationException : <<throws>>
 ChargingBay ..> BayDockingException : <<throws>>
-Main ..> InvalidVehicleConfigurationException : <<catch>>
-Main ..> NoAvailableBayException : <<catch>>
-Main ..> BayDockingException : <<catch>>
-Main ..> EVNetworkController : <<use>>
-Main ..> ChargingBayFactory : <<use>>
-Main ..> VehicleFactory : <<use>>
-Main ..> ConsoleDashboardListener : <<create>>
-Main ..> VisualUtility : <<use>>
+WebServer ..> InvalidVehicleConfigurationException : <<catch>>
+WebServer ..> NoAvailableBayException : <<catch>>
+WebServer ..> BayDockingException : <<catch>>
+WebServer --> "1" SimulationService : simulation
+WebServer ..> Json : <<use>>
+SimulationService *-- "1" EVNetworkController : controller
+SimulationService *-- "1" EventLogListener : eventLog
+SimulationService ..> ChargingBayFactory : <<use>>
+SimulationService ..> VehicleFactory : <<use>>
+Main ..> WebServer : <<create>>
+Main ..> SimulationService : <<create>>
 @enduml

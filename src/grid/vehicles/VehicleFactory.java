@@ -19,6 +19,6 @@ public class VehicleFactory {
             throw new InvalidVehicleConfigurationException("Invalid charge percentage: vehicle must be below 100%.");
         }
 
-        return new ElectricVehicle(plateNumber, type.getBatteryCapacity(), type.getMaxChargingRate(), initialChargePercentage);
+        return new ElectricVehicle(type, plateNumber, initialChargePercentage);
     }
 }

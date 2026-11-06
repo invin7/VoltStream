@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VoltStream</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23c9f236' d='M13.5 2 4 14h6.5L9.5 22 20 9.5h-7z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2 4 14h6.5L9.5 22 20 9.5h-7z"/></svg>
+      <span>VoltStream</span>
+    </div>
+
+    <dl class="readouts">
+      <div>
+        <dt>Sim clock</dt>
+        <dd id="clock">T+00:00</dd>
+      </div>
+      <div>
+        <dt>Revenue</dt>
+        <dd id="revenue">₹0.00</dd>
+      </div>
+    </dl>
+
+    <div class="actions">
+      <button type="button" id="reset" class="button button-quiet">Reset</button>
+      <button type="button" id="step" class="button button-primary">Advance time</button>
+    </div>
+  </header>
+
+  <p id="banner" class="banner" role="alert" hidden></p>
+
+  <main class="layout">
+    <div class="station">
+      <section class="panel feed" aria-labelledby="feed-title">
+        <div class="feed-head">
+          <div>
+            <h2 id="feed-title" class="eyebrow">Grid feed</h2>
+            <p class="feed-load">
+              <span id="load-kw">0.0</span>
+              <span class="feed-capacity">of <span id="capacity-kw">0</span> kW</span>
+            </p>
+          </div>
+          <div class="feed-state">
+            <span id="load-percent" class="feed-percent">0%</span>
+            <span id="load-note" class="feed-note"></span>
+          </div>
+        </div>
+
+        <div id="meter" class="meter" role="img">
+          <div id="meter-peak" class="meter-peak"></div>
+          <div id="segments" class="meter-segments"></div>
+          <div id="meter-tick" class="meter-tick"></div>
+        </div>
+        <div id="meter-scale" class="meter-scale">
+          <span id="meter-peak-label" class="meter-peak-label"></span>
+        </div>
+
+        <ul id="legend" class="legend"></ul>
+      </section>
+
+      <section aria-labelledby="bays-title">
+        <h2 id="bays-title" class="eyebrow section-title">Charging bays</h2>
+        <div id="bays" class="bays"></div>
+      </section>
+    </div>
+
+    <aside class="rail">
+      <section class="panel" aria-labelledby="dock-title">
+        <h2 id="dock-title" class="eyebrow">Add vehicle</h2>
+        <form id="vehicle-form" class="form" novalidate>
+          <fieldset class="field">
+            <legend>Vehicle type</legend>
+            <div id="vehicle-types" class="type-list"></div>
+          </fieldset>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="plate">License plate</label>
+              <input id="plate" name="plate" type="text" maxlength="16" autocomplete="off" spellcheck="false" placeholder="KA01AB1234">
+            </div>
+            <div class="field field-charge">
+              <label for="charge">Charge %</label>
+              <input id="charge" name="charge" type="text" inputmode="decimal" autocomplete="off" value="20">
+            </div>
+          </div>
+
+          <p id="form-error" class="form-error" role="alert" hidden></p>
+          <button type="submit" class="button button-secondary">Send to first free bay</button>
+        </form>
+      </section>
+
+      <section class="panel activity" aria-labelledby="activity-title">
+        <h2 id="activity-title" class="eyebrow">Activity</h2>
+        <p id="activity-empty" class="activity-empty">Nothing yet. Add a vehicle to get started.</p>
+        <ol id="activity" class="activity-list"></ol>
+      </section>
+    </aside>
+  </main>
+
+  <template id="bay-template">
+    <article class="bay">
+      <header class="bay-head">
+        <div>
+          <h3 data-field="id"></h3>
+          <p data-field="spec"></p>
+        </div>
+        <span class="status" data-field="status"></span>
+      </header>
+
+      <p class="bay-idle" data-field="idle">Ready for the next vehicle</p>
+
+      <div class="bay-body" data-field="body">
+        <p class="plate" data-field="plate"></p>
+        <p class="vehicle-name" data-field="vehicleName"></p>
+
+        <div class="battery" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-field="battery">
+          <div class="battery-fill" data-field="fill"></div>
+        </div>
+        <div class="battery-row">
+          <span class="battery-percent" data-field="percent"></span>
+          <span data-field="energy"></span>
+        </div>
+
+        <dl class="stats">
+          <div>
+            <dt>Power</dt>
+            <dd data-field="power"></dd>
+          </div>
+          <div>
+            <dt>Tariff</dt>
+            <dd data-field="tariff"></dd>
+          </div>
+          <div>
+            <dt>Full in</dt>
+            <dd data-field="eta"></dd>
+          </div>
+        </dl>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

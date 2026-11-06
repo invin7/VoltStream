@@ -1,20 +1,23 @@
 package grid.vehicles;
 
 public class ElectricVehicle {
+    private final VehicleType type;
     private final String plateNumber;
     private final double batteryCapacity;
     private final double maxChargingRate;
     private double currentCharge;
 
-    public ElectricVehicle(String plateNumber, double batteryCapacity, double maxChargingRate, double initialChargePercentage) {
+    public ElectricVehicle(VehicleType type, String plateNumber, double initialChargePercentage) {
+        this.type = type;
         this.plateNumber = plateNumber;
-        this.batteryCapacity = batteryCapacity;
-        this.maxChargingRate = maxChargingRate;
+        this.batteryCapacity = type.getBatteryCapacity();
+        this.maxChargingRate = type.getMaxChargingRate();
         this.currentCharge = (initialChargePercentage / 100.0) * batteryCapacity;
     }
 
     // --- Getters & Setters ---
 
+    public VehicleType getType() { return type; }
     public String getPlateNumber() { return plateNumber; }
     public double getBatteryCapacity() { return batteryCapacity; }
     public double getCurrentCharge() { return currentCharge; }

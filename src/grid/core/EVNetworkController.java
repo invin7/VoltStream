@@ -1,6 +1,7 @@
 package grid.core;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import grid.charging.ChargingBay;
@@ -32,6 +33,18 @@ public class EVNetworkController {
 
     public void addListener(ChargingEventListener listener) {
         listeners.add(listener);
+    }
+
+    public List<ChargingBay> getBays() {
+        return Collections.unmodifiableList(stationBays);
+    }
+
+    public double getMaxGridCapacityKw() {
+        return maxGridCapacityKw;
+    }
+
+    public double getTotalRevenue() {
+        return totalRevenueGenerated;
     }
 
     private void notifyDocked(ChargingBay bay, ElectricVehicle ev) {
@@ -100,8 +113,7 @@ public class EVNetworkController {
 
         for (ChargingBay bay : stationBays) {
             if (bay.isOccupied()) {
-                ElectricVehicle ev = bay.getDockedVehicle();
-                double requestedPower =Math.min(bay.getMaximumHardwareOutput(), ev.getMaxChargingRate());
+                double requestedPower = bay.getRequestedPower();
                 bay.setAllocatedPower(requestedPower);
                 totalRequestedPower += requestedPower;
             }

@@ -1,160 +1,41 @@
 package grid;
 
-import java.util.Scanner;
+import java.io.IOException;
+import java.net.BindException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-import grid.vehicles.ElectricVehicle;
-import grid.vehicles.VehicleFactory;
-import grid.vehicles.VehicleType;
-import grid.charging.BayType;
-import grid.charging.ChargingBayFactory;
-import grid.core.EVNetworkController;
-import grid.exceptions.BayDockingException;
-import grid.exceptions.InvalidVehicleConfigurationException;
-import grid.exceptions.NoAvailableBayException;
-import grid.events.ConsoleDashboardListener;
-import grid.util.VisualUtility;
+import grid.web.SimulationService;
+import grid.web.WebServer;
 
 public class Main {
-    private static final double GRID_CAPACITY = 400.0;
-    private static final int TOTAL_BAYS = 3;
-    private static final double TIME_STEP = 0.2;
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        
-        EVNetworkController controller = new EVNetworkController(GRID_CAPACITY);
-        controller.addListener(new ConsoleDashboardListener());
+    private static final int DEFAULT_PORT = 8080;
+    private static final Path WEB_ROOT = Path.of("web");
 
-        controller.addBay(ChargingBayFactory.createBay(BayType.ULTRA_FAST, "BAY-01 (Ultra-Fast 350kW)"));
-        controller.addBay(ChargingBayFactory.createBay(BayType.ULTRA_FAST, "BAY-02 (Ultra-Fast 350kW)"));
-        controller.addBay(ChargingBayFactory.createBay(BayType.FAST_DC, "BAY-03 (Fast-DC 150kW)"));
-        
-        
-        boolean running = true;
-        while (running) {
-            VisualUtility.clearScreen();
+    public static void main(String[] args) throws IOException {
+        if (!Files.isDirectory(WEB_ROOT)) {
+            System.err.println("Could not find the web folder. Run VoltStream from the project root.");
+            System.exit(1);
+        }
 
-            System.out.println("==========================================");
-            System.out.println("          VoltStream Simulator");
-            System.out.println("==========================================");
-            System.out.printf("Grid Capacity : %.0f kW%n", GRID_CAPACITY);
-            System.out.printf("Charging Bays : %d%n", TOTAL_BAYS);
+        int port = DEFAULT_PORT;
 
-            System.out.println("\n========== Main Menu ==========");
-            System.out.println("1. Add Vehicle");
-            System.out.println("2. Simulate 12-Minute Time Step");
-            System.out.println("3. View Dashboard");
-            System.out.println("4. Exit Simulation");
-
-            System.out.print("\nSelect an option [1-4]: ");
-            
-            String choiceInput = scanner.nextLine().trim();
-            int choice = 0;
-            
-            try {
-                choice = Integer.parseInt(choiceInput);
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid input. Please enter a number.");
-                System.out.print("\nPress Enter to try again...");
-                scanner.nextLine();
-                continue;
+        try {
+            if (args.length > 0) {
+                port = Integer.parseInt(args[0]);
             }
 
-            switch (choice) {
-                case 1:
-                	handleVehicleDocking(scanner, controller);
-                    break;
+            WebServer server = new WebServer(port, WEB_ROOT, new SimulationService());
+            server.start();
 
-                case 2:
-                    System.out.println("\nAdvancing simulation by 12 minutes...");
-                    controller.executeTimeStep(TIME_STEP);
-                    
-                    System.out.print("\nPress Enter to return to main menu...");
-                    scanner.nextLine();
-                    break;
-
-                case 3:
-                    controller.executeTimeStep(0);
-                    
-                    System.out.print("\nPress Enter to return to main menu...");
-                    scanner.nextLine(); 
-                    break;
-
-                case 4:
-                    System.out.println("\nShutting down VoltStream...");
-                    running = false;
-                    break;
-
-                default:
-                    System.out.println("Invalid menu option.");
-                    System.out.print("\nPress Enter to try again...");
-                    scanner.nextLine();
-            }
+            System.out.printf("VoltStream is running at http://localhost:%d%n", server.getPort());
+            System.out.println("Press Ctrl+C to stop.");
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid port: " + args[0]);
+            System.exit(1);
+        } catch (BindException e) {
+            System.err.printf("Port %d is already in use. Pass another one: java -cp out grid.Main 9090%n", port);
+            System.exit(1);
         }
-        scanner.close();
-        System.out.println("\nVoltStream terminated successfully.");
-    }
-    
-    private static void handleVehicleDocking(Scanner scanner, EVNetworkController controller) {
-
-        System.out.println("\n========== Add Vehicle ==========");
-        VehicleType[] types = VehicleType.values();
-        System.out.println();
-
-        for (int i = 0; i < types.length; i++) {
-            System.out.printf("%d. %-18s (Max Rate: %.1f kW | Battery: %.0f kWh)%n",
-                    i + 1,
-                    types[i].getDisplayName(),
-                    types[i].getMaxChargingRate(),
-                    types[i].getBatteryCapacity());
-        }
-
-        System.out.printf("Select Vehicle Type [1-%d]: ", types.length);
-
-        int typeChoice;
-
-        try {
-            typeChoice = Integer.parseInt(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid selection.");
-            waitForEnter(scanner);
-            return;
-        }
-
-        if (typeChoice < 1 || typeChoice > types.length) {
-            System.out.println("Selection out of range.");
-            waitForEnter(scanner);
-            return;
-        }
-
-        VehicleType selectedType = types[typeChoice - 1];
-
-        System.out.print("Enter license plate: ");
-        String plate = scanner.nextLine().trim().toUpperCase();
-
-        System.out.print("Enter initial charge (0\u201399%): ");
-
-        double soc;
-
-        try {
-            soc = Double.parseDouble(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid percentage.");
-            waitForEnter(scanner);
-            return;
-        }
-
-        try {
-            ElectricVehicle newEV = VehicleFactory.createVehicle(selectedType, plate, soc);
-            controller.dispatchVehicle(newEV);
-        } catch (InvalidVehicleConfigurationException | NoAvailableBayException | BayDockingException e) {
-            System.out.println(e.getMessage());
-        }
-
-        waitForEnter(scanner);
-    }
-    
-    private static void waitForEnter(Scanner scanner) {
-        System.out.print("\nPress Enter to continue...");
-        scanner.nextLine();
     }
 }

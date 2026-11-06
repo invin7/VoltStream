@@ -6,6 +6,7 @@ import grid.tariff.TariffStrategy;
 
 public abstract class ChargingBay implements ChargingInterface {
 
+    public static final double PEAK_LOAD_THRESHOLD = 0.75;
     private static final double BASE_RATE_PER_KWH = 8.50;
 
     private final String bayId;
@@ -30,6 +31,11 @@ public abstract class ChargingBay implements ChargingInterface {
 
     // --- Behavior ---
 
+    public double getRequestedPower() {
+        if (!isOccupied()) return 0.0;
+        return Math.min(getMaximumHardwareOutput(), dockedVehicle.getMaxChargingRate());
+    }
+
     public double getBillableRate(double gridLoadFactor) {
         return BASE_RATE_PER_KWH * tariffStrategy.getMultiplier(gridLoadFactor);
     }
@@ -50,4 +56,6 @@ public abstract class ChargingBay implements ChargingInterface {
 
     @Override
     public abstract double getMaximumHardwareOutput();
+
+    public abstract BayType getBayType();
 }

@@ -37,11 +37,16 @@ package "Exceptions" {
   class InvalidGridConfigurationException <<unchecked>>
 }
 
-package "Events / UI" {
+package "Events" {
   interface ChargingEventListener
-  class ConsoleDashboardListener
+  class EventLogListener
+}
+
+package "Web" {
   class Main <<application>>
-  class VisualUtility <<utility>>
+  class WebServer
+  class SimulationService
+  class Json <<utility>>
 }
 
 Exception <|-- InvalidVehicleConfigurationException
@@ -60,7 +65,7 @@ ChargingBay --> "0..1" ElectricVehicle : docked vehicle
 
 EVNetworkController *-- "0..*" ChargingBay : manages
 EVNetworkController o-- "0..*" ChargingEventListener : notifies
-ChargingEventListener <|.. ConsoleDashboardListener
+ChargingEventListener <|.. EventLogListener
 
 ChargingBayFactory ..> UltraFastBay : creates
 ChargingBayFactory ..> FastDCBay : creates
@@ -73,12 +78,16 @@ EVNetworkController ..> NoAvailableBayException : throws
 EVNetworkController ..> BayDockingException : throws
 EVNetworkController ..> InvalidGridConfigurationException : throws
 ChargingBay ..> BayDockingException : throws
-Main ..> InvalidVehicleConfigurationException : catches
-Main ..> NoAvailableBayException : catches
-Main ..> BayDockingException : catches
+WebServer ..> InvalidVehicleConfigurationException : catches
+WebServer ..> NoAvailableBayException : catches
+WebServer ..> BayDockingException : catches
 
-Main ..> EVNetworkController
-Main ..> ChargingBayFactory
-Main ..> VehicleFactory
-ConsoleDashboardListener ..> VisualUtility
+Main ..> WebServer
+Main ..> SimulationService
+WebServer --> SimulationService
+WebServer ..> Json
+SimulationService --> EVNetworkController
+SimulationService --> EventLogListener
+SimulationService ..> ChargingBayFactory
+SimulationService ..> VehicleFactory
 @enduml
